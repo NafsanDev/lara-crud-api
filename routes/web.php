@@ -18,9 +18,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
-Route::get('/blog/show', [BlogController::class, 'show'])->name('blog.show');
-Route::get('/blog/create', [BlogController::class, 'create'])->name('blog.create');
-Route::get('/blog/edit/{id}', [BlogController::class, 'edit'])->name('blog.edit');
+// Resource route
+Route::middleware(['auth', 'verified'])->group(function(){
+    Route::resource('/blog', BlogController::class);
+});
+
 
 require __DIR__.'/auth.php';

@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-//use App\Models\Blog;
+use App\Models\Blog;
+use Illuminate\Support\Facades\Storage;
 
 class BlogController extends Controller
 {
@@ -12,8 +13,10 @@ class BlogController extends Controller
      */
     public function index()
     {
-        //$blogs = Blog::all();
-        return view('blog.index');
+        $blogs = Blog::where('user_id', request()->user()->id)
+            ->orderBy('id', 'DESC')
+            ->paginate(10);
+        return view('blog.index', ['blogs' => $blogs]);
     }
 
     /**
@@ -29,38 +32,66 @@ class BlogController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $data = $request->validate([
+            'title' => 'required|string',
+            'description' => 'required|string',
+            'banner_image' => 'required|image'
+        ]);
+
+        $data['user_id'] = request()->user()->id;
+        if($request->hasFile('banner_image')){
+            $data['banner_image'] = $request->file('banner_image')->store('blogs', 'public');
+        }
+        Blog::create($data);
+        return to_route('blog.index')->with('success', 'Blog created successfully');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Blog $blog)
     {
-        return view('blog.show');
+        //$blog = Blog::where($id);
+        return view('blog.show', ['blog' => $blog]);
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(Blog $blog)
     {
-        return view('blog.edit');
+        return view('blog.edit', ['blog' => $blog]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Blog $blog)
     {
-        //
+        $data = $request->validate([
+            'title' => 'required|string',
+            'description' => 'required|string'
+        ]);
+
+        if($request->hasFile('banner_image')){
+            if($blog->banner_image){
+                Storage::disk('public')->delete($blog->banner_image);
+            }
+            $data['banner_image'] = $request->file('banner_image')->store('blogs', 'public');
+        }
+        $blog->update($data);
+        return to_route('blog.show', $blog)->with('success', 'Blog updated successfully!');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Blog $blog)
     {
-        //
+        if($blog->banner_image){
+            Storage::disk('public')->delete($blog->banner_image);
+        }
+        $blog->delete();
+        return to_route('blog.index')->with('success', 'Blog deleted successfully!');
     }
 }
